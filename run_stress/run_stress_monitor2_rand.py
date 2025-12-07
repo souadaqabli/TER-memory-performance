@@ -4,7 +4,7 @@ import time
 
 # 1. Lancer le monitor en arrière-plan
 monitor_proc = subprocess.Popen(
-    ["python3", "monitor.py", "--out", "../results/run_monitor_2.csv", "--interval", "1"]
+    ["python3", "monitor.py", "--out", "../results/run_monitor_rand.csv", "--interval", "1"]
 )
 
 # 2. Lancer le stress mémoire
