@@ -27,13 +27,18 @@ def copy_test(size_mb, iterations):
     size = size_mb * 1024 * 1024 // 8  # éléments float64 (8 bytes)
     src = np.random.rand(size)
     dst = np.empty_like(src)
-    t0 = time.perf_counter()
+    latencies = []
+    t_start = time.perf_counter()
     for _ in range(iterations):
+        t0 = time.perf_counter_ns()
         dst[:] = src[:]   
-    t1 = time.perf_counter()
+        t1 = time.perf_counter_ns()
+        latencies.append((t1 - t0)/len(src))
+    t_end = time.perf_counter()
     bytes_copied = size_mb * 1024 * 1024 * iterations
-    gb_s = bytes_copied / (t1 - t0) / (1024**3)
-    return gb_s, t1 - t0
+    gb_s = bytes_copied / (t_end - t_start) / (1024**3)
+    avg_latency_ns = sum(latencies)/len(latencies)
+    return gb_s, t_end - t_start , avg_latency_ns
 
 # -------------------------------------------------------------------
 # 2. SIMPLE RANDOM ACCESS TEST
@@ -56,11 +61,17 @@ def random_access_test(size_mb, duration_s):
     arr = np.random.rand(size)
     start = time.time()
     ops = 0
+    latencies = []
     while time.time() - start < duration_s:
         idx = np.random.randint(0, size, 10000)
+        t0 = time.perf_counter_ns()
         _ = arr[idx].sum()
+        t1 = time.perf_counter_ns()
         ops += idx.size
-    return ops / duration_s
+        latencies.append((t1 - t0)/idx.size)
+
+    avg_latency_ns = sum(latencies)/len(latencies)
+    return ops / duration_s , avg_latency_ns
 
 # -------------------------------------------------------------------
 # 3. RANDOM v2 (random access + latency)
@@ -122,13 +133,39 @@ def random_write_test(size_mb, duration_s, batch=50000):
     arr = np.random.rand(size)
     start = time.time()
     ops = 0
+    latencies = []
 
     while time.time() - start < duration_s:
         idx = np.random.randint(0, size, batch)
+        t0 = time.perf_counter_ns()
         arr[idx] = np.random.rand(batch)
+        t1 = time.perf_counter_ns()
         ops += batch
+        latencies.append((t1 - t0) / batch)
 
-    return ops / duration_s
+    avg_latency_ns = sum(latencies) / len(latencies)
+    return ops / duration_s , avg_latency_ns
+
+
+def stride_test(size_mb, duration_s, stride_bytes=4096):
+    # Test TLB (Saut variable)
+    # size_mb : taille du tableau global
+    # stride_bytes : taille du saut en octets
+    
+    # On convertit les octets en indices float64 (8 bytes)
+    stride_idx = stride_bytes // 8
+    if stride_idx < 1: stride_idx = 1
+    
+    size = size_mb * 1024 * 1024 // 8
+    arr = np.random.rand(size)
+    
+    start = time.time()
+    ops = 0
+    while time.time() - start < duration_s:
+        # Lecture linéaire avec sauts
+        _ = arr[::stride_idx].sum() 
+        ops += (size // stride_idx)
+    return ops / duration_sS
 
 # -------------------------------------------------------------------
 # 5. Worker for Parallel Mode (rand_multi)
@@ -164,13 +201,14 @@ def worker_copy(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode",
-                        choices=["copy", "rand", "rand_v2", "rand_write", "rand_multi"],
+                        choices=["copy", "rand", "rand_v2", "rand_write", "rand_multi", "stride"],
                         default="copy")
     parser.add_argument("--size-mb", type=int, default=1024)
     parser.add_argument("--iters", type=int, default=10)
     parser.add_argument("--duration", type=int, default=10)
     parser.add_argument("--procs", type=int, default=1)
     parser.add_argument("--batch", type=int, default=50000)
+    parser.add_argument("--stride-bytes", type=int, default=4096)
     args = parser.parse_args()
 
     # MULTIPROCESSING
@@ -184,17 +222,22 @@ if __name__ == "__main__":
 
     # MODES SIMPLES
     if args.mode == "copy":
-        bw, dur = copy_test(args.size_mb, args.iters)
-        print(f"Copy {args.size_mb} MiB x {args.iters} => {bw:.2f} GB/s in {dur:.2f}s")
+        bw, dur, lat = copy_test(args.size_mb, args.iters)
+        print(f"Copy {args.size_mb} MiB x {args.iters} => {bw:.2f} GB/s in {dur:.2f}s, latence: {lat:.1f} ns")
 
     elif args.mode == "rand":
-        ops_s = random_access_test(args.size_mb, args.duration)
-        print(f"Random ops/s: {ops_s:.0f}")
+        ops_s, lat = random_access_test(args.size_mb, args.duration)
+        print(f"Random ops/s: {ops_s:.0f}, latence: {lat:.1f} ns")
 
     elif args.mode == "rand_v2":
         ops_s, lat = random_access_test_v2(args.size_mb, args.duration, args.batch)
         print(f"Random v2 ops/s: {ops_s:.0f}, latence: {lat:.1f} ns")
 
     elif args.mode == "rand_write":
-        ops_s = random_write_test(args.size_mb, args.duration, args.batch)
-        print(f"Random WRITE ops/s: {ops_s:.0f}")
+        ops_s, lat = random_write_test(args.size_mb, args.duration, args.batch)
+        print(f"Random WRITE ops/s: {ops_s:.0f} , latence: {lat:.1f} ns")
+    
+    # AJOUT DU BLOC STRIDE
+    elif args.mode == "stride":
+        ops_s = stride_test(args.size_mb, args.duration, args.stride_bytes)
+        print(f"Stride ops/s: {ops_s:.0f}")
