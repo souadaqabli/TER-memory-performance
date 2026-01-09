@@ -113,7 +113,7 @@ for s in stride_list:
 
 # ------------------ SAVE RESULTS ------------------
 df = pd.DataFrame(results)
-df.to_csv("memory_benchmark_results_full.csv", index=False)
+df.to_csv("../results/memory_benchmark_results_full.csv", index=False)
 
 print("\n=== BENCHMARK RESULTS ===")
 

@@ -165,7 +165,7 @@ def stride_test(size_mb, duration_s, stride_bytes=4096):
         # Lecture linéaire avec sauts
         _ = arr[::stride_idx].sum() 
         ops += (size // stride_idx)
-    return ops / duration_sS
+    return ops / duration_s
 
 # -------------------------------------------------------------------
 # 5. Worker for Parallel Mode (rand_multi)
