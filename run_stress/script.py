@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import subprocess
 import pandas as pd
+import os
 
 # ------------------ CONFIG ------------------
-patterns = ["copy", "rand", "rand_v2", "rand_write"]
+patterns = ["copy","sequential_read", "rand_v2", "rand_write"]
 sizes_mb = [2, 8, 1024]
 iters = 10
 duration = 10
@@ -11,11 +12,33 @@ batch = 50000
 # Phase 2 : Test Stride (TLB)
 stride_list = [64, 256, 512, 1024, 2048, 4096, 8192]
 fixed_size_for_stride = 512 
-
 results = []
 
+#-------------Topology--------------
+
+def capture_system_topology():
+
+    output_dir = "../results"
+
+    try:
+        # 1. Affichage console simplifié (CPU + Cache seulement, pas les periphériques)
+        subprocess.run(["lstopo-no-graphics", "--no-io"], check=False)
+        
+        # 2. Sauvegarde de l'image (PNG)
+        img_path = os.path.join(output_dir, "system_topology.png")
+        subprocess.run(["lstopo", "--output-format", "png", img_path], check=False, stderr=subprocess.DEVNULL)
+        print(f"Topology graphic saved in : {img_path}")
+
+    except FileNotFoundError:
+        print("lstopo not installed")
+        print("Benchmark will continue without capturing topology")
+
+    print("================================\n")
+
 # ------------------ FUNCTION ------------------
+
 def run_perf(mode, size_mb, stride_val=None):
+    
     """Lance mem_stress.py avec perf et récupère les métriques"""
     cmd = [
         "perf", "stat",
@@ -47,6 +70,10 @@ def run_perf(mode, size_mb, stride_val=None):
             ops = float(line.split("=>")[1].split("GB/s")[0].strip())
             if "latence" in line:
                 lat = float(line.split("latence:")[1].split("ns")[0].strip())
+        elif "sequential_read" in line:
+            ops = float(line.split("=>")[1].split("GB/s")[0].strip())
+            if "latence" in line:
+                lat = float(line.split("latence:")[1].split("ns")[0].strip())
         elif "Random" in line:
             ops = float(line.split(":")[1].split(",")[0].strip())
             if "latence" in line:
@@ -62,6 +89,8 @@ def run_perf(mode, size_mb, stride_val=None):
         "L1_misses": 0,
         "LLC_misses": 0,
         "TLB_misses": 0,
+        "size_mb": size_mb,  
+        "stride": stride_val if stride_val else 0
     }
 
     for line in stderr.splitlines():
@@ -100,12 +129,19 @@ def run_perf(mode, size_mb, stride_val=None):
     }
 
 # ------------------ RUN BENCHMARK ------------------
+
+# 1.Topology capture
+capture_system_topology()
+
+
+# 2.Memory patterns
+print("=== PHASE 1: PATTERNS MEMOIRE ===")
 for size_mb in sizes_mb:
         for mode in patterns:
             results.append(run_perf(mode, size_mb))
 
 
-# 2. Boucle Stride (Impact du saut TLB)
+# 3. Boucle Stride (Impact du saut TLB)
 print("\n=== PHASE 2: IMPACT SAUT (STRIDE) ===")
 for s in stride_list:
     # we launch this mode with a fixed size_mb and different stride values
@@ -121,3 +157,4 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 200)         
 print(df)
 print("\n[OK] Résultats sauvegardés dans memory_benchmark_results_full.csv")
+print(f"[OK] Topologie sauvegardée dans : {img_path}")
