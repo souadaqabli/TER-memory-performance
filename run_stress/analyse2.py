@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import mem_stress 
-import numpy as np  # <--- CORRECTION 1 : Indispensable pour np.std et np.array
+import numpy as np  
 import os
 
 
@@ -14,8 +14,8 @@ def run_comparison():
     # Structure : 'mode': {'mean': [], 'std': []}
     data = {
         'Seq Read':   {'x': [], 'y': [], 'yerr': [], 'c': '#1f77b4', 'fmt': 'o'}, # Bleu
-        'Rand Read':  {'x': [], 'y': [], 'yerr': [], 'c': '#ff7f0e', 'fmt': '^'}, # Orange
-        'Rand Write': {'x': [], 'y': [], 'yerr': [], 'c': '#2ca02c', 'fmt': 'v'}  # Vert
+        'Rand Read':  {'x': [], 'y': [], 'yerr': [], 'c': '#ff7f0e', 'fmt': 'o'}, # Orange
+        'Rand Write': {'x': [], 'y': [], 'yerr': [], 'c': '#2ca02c', 'fmt': 'o'}  # Vert
     }
     
     # Paramètres de test
@@ -70,7 +70,6 @@ def run_comparison():
     plt.xticks(
         ticks=target_sizes, 
         labels=[str(s) for s in target_sizes], 
-        #rotation=45  # On penche un peu pour éviter que ça se touche
     )
 
     # Axes et Titres
