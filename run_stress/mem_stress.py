@@ -60,7 +60,8 @@ def sequential_read(size_mb, iterations):
         tuple: (throughput_gb_s, total_time_s, avg_latency_ns, per_iteration_latencies)
     """
     size = size_mb * 1024 * 1024 // 8  # éléments float64 (8 bytes)
-    src = np.random.rand(size)
+    #src = np.random.rand(size)
+    src = np.ones(size)
     
     latencies = []
     t_start = time.perf_counter()
@@ -76,11 +77,45 @@ def sequential_read(size_mb, iterations):
     return gb_s, t_end - t_start , avg_latency_ns, latencies
 
 
+# -------------------------------------------------------------------
+# 2-. SEQUENTIAL WRITE 
+# -------------------------------------------------------------------
+def sequential_write(size_mb, iterations):
+    """
+    Benchmarks sequential memory write performance (linear fill).
+
+    Writes a constant value to the entire array to measure 
+    maximum write bandwidth and Write Combining buffer efficiency.
+    """
+    size = size_mb * 1024 * 1024 // 8  # float64
+    arr = np.ones(size)  
+    val = 1.0           
+    
+    latencies = []
+    t_start = time.perf_counter()
+    
+    for _ in range(iterations):
+        t0 = time.perf_counter_ns()
+        
+        arr[:] = val 
+        
+        t1 = time.perf_counter_ns()
+        latencies.append((t1 - t0)/len(arr))
+
+    t_end = time.perf_counter()
+    
+    # Calcul du débit
+    bytes_processed = size_mb * 1024 * 1024 * iterations
+    gb_s = bytes_processed / (t_end - t_start) / (1024**3)
+    avg_latency_ns = sum(latencies)/len(latencies)
+    
+    return gb_s, t_end - t_start, avg_latency_ns, latencies
+
 
 # -------------------------------------------------------------------
-# 3. RANDOM v2 (random access + latency)
+# 3. RANDOM read (random access + latency)
 # -------------------------------------------------------------------
-def random_access_test_v2(size_mb, duration_s, batch=50000):
+def random_access_test(size_mb, duration_s, batch=50000):
     """
     Measures complex random read access operations and average latency.
 
@@ -206,7 +241,7 @@ def stride_test(size_mb, duration_s, stride_bytes=4096):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode",
-                        choices=["copy", "sequential_read", "rand_v2", "rand_write", "stride"],
+                        choices=["copy", "sequential_read", "sequential_write", "random_read", "random_write", "stride"],
                         default="copy")
     parser.add_argument("--size-mb", type=int, default=1024)
     parser.add_argument("--iters", type=int, default=10)
@@ -234,15 +269,19 @@ if __name__ == "__main__":
         bw, dur, lat , _= sequential_read(args.size_mb, args.iters)
         print(f"sequential_read {args.size_mb} MiB x {args.iters} => {bw:.2f} GB/s in {dur:.2f}s, latence: {lat:.1f} ns")
 
+    if args.mode == "sequential_write":
+        bw, dur, lat , _= sequential_write(args.size_mb, args.iters)
+        print(f"sequential_write {args.size_mb} MiB x {args.iters} => {bw:.2f} GB/s in {dur:.2f}s, latence: {lat:.1f} ns")
+
     #elif args.mode == "rand":
         #ops_s, lat, _ = random_access_test(args.size_mb, args.duration)
         #print(f"Random ops/s: {ops_s:.0f}, latence: {lat:.1f} ns")
 
-    elif args.mode == "rand_v2":
-        ops_s, lat, _ = random_access_test_v2(args.size_mb, args.duration, args.batch)
-        print(f"Random v2 ops/s: {ops_s:.0f}, latence: {lat:.1f} ns")
+    elif args.mode == "random_read":
+        ops_s, lat, _ = random_access_test(args.size_mb, args.duration, args.batch)
+        print(f"Random read ops/s: {ops_s:.0f}, latence: {lat:.1f} ns")
 
-    elif args.mode == "rand_write":
+    elif args.mode == "random_write":
         ops_s, lat, _ = random_write_test(args.size_mb, args.duration, args.batch)
         print(f"Random WRITE ops/s: {ops_s:.0f} , latence: {lat:.1f} ns")
     

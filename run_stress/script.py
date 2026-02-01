@@ -4,7 +4,7 @@ import pandas as pd
 import os
 
 # ------------------ CONFIG ------------------
-patterns = ["copy","sequential_read", "rand_v2", "rand_write"]
+patterns = ["copy","sequential_read","sequential_write", "random_read", "random_write"]
 sizes_mb = [2, 8, 1024]
 iters = 10
 duration = 10
@@ -38,7 +38,7 @@ def capture_system_topology():
 # ------------------ FUNCTION ------------------
 
 def run_perf(mode, size_mb, stride_val=None):
-    
+
     """Lance mem_stress.py avec perf et récupère les métriques"""
     cmd = [
         "perf", "stat",
@@ -71,6 +71,10 @@ def run_perf(mode, size_mb, stride_val=None):
             if "latence" in line:
                 lat = float(line.split("latence:")[1].split("ns")[0].strip())
         elif "sequential_read" in line:
+            ops = float(line.split("=>")[1].split("GB/s")[0].strip())
+            if "latence" in line:
+                lat = float(line.split("latence:")[1].split("ns")[0].strip())
+        elif "sequential_write" in line:
             ops = float(line.split("=>")[1].split("GB/s")[0].strip())
             if "latence" in line:
                 lat = float(line.split("latence:")[1].split("ns")[0].strip())
