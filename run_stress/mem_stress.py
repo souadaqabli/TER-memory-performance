@@ -75,38 +75,6 @@ def sequential_read(size_mb, iterations):
     avg_latency_ns = sum(latencies)/len(latencies)
     return gb_s, t_end - t_start , avg_latency_ns, latencies
 
-# -------------------------------------------------------------------
-# 2. SIMPLE RANDOM ACCESS TEST
-# -------------------------------------------------------------------
-#def random_access_test(size_mb, duration_s):
-    #"""
-    #Measures simple random read access operations.
-
-    #Accesses random blocks of the array for a defined duration.
-    #This stresses the memory controller and caches .
-
-    #Args:
-        #size_mb (int): Size of the working array in MiB.
-        #duration_s (int): Test duration in seconds.
-
-    #Returns:
-        #float: Number of random access operations per second (ops/s).
-    #"""
-    #size = size_mb * 1024 * 1024 // 8
-    #arr = np.random.rand(size)
-    #start = time.time()
-    #ops = 0
-    #latencies = []
-    #while time.time() - start < duration_s:
-        #idx = np.random.randint(0, size, 10000)
-        #t0 = time.perf_counter_ns()
-        #_ = arr[idx].sum()
-        #t1 = time.perf_counter_ns()
-        #ops += idx.size
-        #latencies.append((t1 - t0)/idx.size)
-
-    #avg_latency_ns = sum(latencies)/len(latencies)
-    #return ops / duration_s , avg_latency_ns, latencies
 
 
 # -------------------------------------------------------------------
