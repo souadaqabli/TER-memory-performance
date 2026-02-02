@@ -5,15 +5,16 @@ import os
 
 
 def run_comparison():
-    print("=== Analyse Complète : 3 Modes x  Tailles ===")
+    print("=== Analyse Complète : 4 Modes x  Tailles ===")
     
     # Vos tailles cibles
-    target_sizes = [2, 4, 8, 64, 128, 512, 1024, 2048]
+    target_sizes = [2, 8, 64, 128, 512, 1024, 2048]
     output_dir = "../results"
 
     # Structure : 'mode': {'mean': [], 'std': []}
     data = {
         'Seq Read':   {'x': [], 'y': [], 'yerr': [], 'c': '#1f77b4', 'fmt': 'o'}, # Bleu
+        'Seq Write':  {'x': [], 'y': [], 'yerr': [], 'c': '#d62728', 'fmt': 'o'}, # Rouge
         'Rand Read':  {'x': [], 'y': [], 'yerr': [], 'c': '#ff7f0e', 'fmt': 'o'}, # Orange
         'Rand Write': {'x': [], 'y': [], 'yerr': [], 'c': '#2ca02c', 'fmt': 'o'}  # Vert
     }
@@ -33,7 +34,14 @@ def run_comparison():
         data['Seq Read']['y'].append(lat)
         data['Seq Read']['yerr'].append(np.std(lst))
         
-        
+        # 2. SEQUENTIAL WRITE ()
+        # Rappel return: gb_s, time, AVG_LAT, list_lat
+        _, _, lat, lst = mem_stress.sequential_write(size_mb, ITERS_SEQ)
+        data['Seq Write']['x'].append(size_mb)
+        data['Seq Write']['y'].append(lat)
+        data['Seq Write']['yerr'].append(np.std(lst))
+
+
         # 2. RANDOM READ (Orange)
         # Rappel return: ops, AVG_LAT, list_lat
 
@@ -85,7 +93,7 @@ def run_comparison():
     plt.legend(fontsize=11, loc='upper left', frameon=True, shadow=True)
 
 
-    save_path = os.path.join(output_dir, "comparaison_std.png")
+    save_path = os.path.join(output_dir, "comparaison_std2.png")
     plt.savefig(save_path)
     print(f"\n[OK] Graphique généré : {save_path}")
     plt.show()
