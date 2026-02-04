@@ -22,7 +22,7 @@ def run_comparison():
         'Rand Write': {'x': [], 'y': [], 'y_err_low': [], 'y_err_high': [], 'c': '#2ca02c'}
     }
     
-    ITERS_SEQ = 100      # Un peu plus d'itérations pour les petites tailles
+    ITERS_SEQ = 10000      # Un peu plus d'itérations pour les petites tailles
     DURATION_RAND = 10 # Rapide
     BATCH_SIZE = 50000 
 
@@ -37,7 +37,8 @@ def run_comparison():
         real_size_bytes = int(size_kb * 1024)
         
         # 1. SEQUENTIAL READ
-        _, _, avg, mini, maxi = mem_stress2.sequential_read(real_size_bytes, ITERS_SEQ)
+        mem_stress2.sequential_read(real_size_bytes, 10)
+        _, _, avg, mini, maxi,_, _, _ = mem_stress2.sequential_read(real_size_bytes, ITERS_SEQ)
         
         data['Seq Read']['x'].append(size_kb) # Axe X en Ko
         data['Seq Read']['y'].append(avg)
@@ -45,7 +46,7 @@ def run_comparison():
         data['Seq Read']['y_err_high'].append(maxi - avg)
         
         # 2. RANDOM READ
-        _, avg, mini, maxi = mem_stress2.random_access_test(real_size_bytes, DURATION_RAND, batch=BATCH_SIZE)
+        _, avg, mini, maxi, _, _, _ = mem_stress2.random_access_test(real_size_bytes, DURATION_RAND, batch=BATCH_SIZE)
         
         data['Rand Read']['x'].append(size_kb)
         data['Rand Read']['y'].append(avg)
@@ -53,7 +54,7 @@ def run_comparison():
         data['Rand Read']['y_err_high'].append(maxi - avg)
 
         # 3. RANDOM WRITE
-        _, avg, mini, maxi = mem_stress2.random_write_test(real_size_bytes, DURATION_RAND, batch=BATCH_SIZE)
+        _, avg, mini, maxi, _, _, _ = mem_stress2.random_write_test(real_size_bytes, DURATION_RAND, batch=BATCH_SIZE)
         
         data['Rand Write']['x'].append(size_kb)
         data['Rand Write']['y'].append(avg)
@@ -85,13 +86,13 @@ def run_comparison():
     )
 
     plt.xlabel('Taille du Bloc Mémoire (Ko)', fontsize=12, fontweight='bold')
-    plt.ylabel('Latence moyenne par element(ns)', fontsize=12, fontweight='bold')
-    plt.title('Performance Mémoire : L1 -> L2 -> RAM (Échelle Ko)', fontsize=14)
+    plt.ylabel('latence moyenne par accès à un élément (ns).', fontsize=12, fontweight='bold')
+    plt.title('Performance Mémoire : L1 -> L2 -> RAM (Échelle Ko) 10000 iterations', fontsize=14)
 
     plt.grid(True, which="major", ls="-", alpha=0.6)
     plt.legend(fontsize=11, loc='upper left')
 
-    save_path = os.path.join(output_dir, "comparaison_min_max.png")
+    save_path = os.path.join(output_dir, "comparaison_min_max10000.png")
     plt.savefig(save_path)
     print(f"[OK] Graphique sauvegardé : {save_path}")
     plt.show()

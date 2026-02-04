@@ -40,7 +40,7 @@ def sequential_read(size_bytes, iterations):
     min_ns = stat[0] / len(src) # le temps pour acceder a un seul element dans la meilleure iteration
     max_ns = stat[1] / len(src)
 
-    return gb_s, t_end - t_start , avg_lat_ns, min_ns, max_ns
+    return gb_s, t_end - t_start , avg_lat_ns, min_ns, max_ns, avg_lat_iter, stat[0], stat[1] 
 
 
 # -------------------------------------------------------------------
@@ -74,11 +74,12 @@ def sequential_write(size_bytes, iterations):
     gb_s = bytes_processed / (t_end - t_start) / (1024**3)
     
     # Conversions
+    avg_lat_iter = (stat[2] / iterations)   # latence moyenne par iteration, le temps moyen qu'il faut pour lire une fois tout le bloc mémoire
     avg_lat_ns = (stat[2] / iterations) / len(arr) # latence moyenne par element 
     min_ns = stat[0] / len(arr) # le temps pour ecrire un seul element dans la meilleure iteration
     max_ns = stat[1] / len(arr)
     
-    return gb_s, t_end - t_start, avg_lat_ns, min_ns, max_ns
+    return gb_s, t_end - t_start, avg_lat_ns, min_ns, max_ns, avg_lat_ns, min_ns, max_ns, avg_lat_iter, stat[0], stat[1] 
 
 
 # -------------------------------------------------------------------
@@ -116,12 +117,14 @@ def random_access_test(size_bytes, duration_s, batch=50000):
         ops += batch
         count_batches += 1
 
+    ratio = size / batch
     # Conversions : Ici on divise par 'batch' car lat correspond à un lot de 'batch' accès
+    avg_lat_iter = (stat[2] / count_batches) * ratio
     avg_lat_ns = (stat[2] / count_batches) / batch # latence moyenne par element
     min_ns = stat[0] / batch # le temps pour un element dans le meilleur batch
     max_ns = stat[1] / batch
     
-    return ops / duration_s, avg_lat_ns, min_ns, max_ns
+    return ops / duration_s, avg_lat_ns, min_ns, max_ns, avg_lat_iter, stat[0] * ratio, stat[1] * ratio
 
 # -------------------------------------------------------------------
 # 5. RANDOM WRITE (Aggressive Random Writes)
@@ -159,11 +162,13 @@ def random_write_test(size_bytes, duration_s, batch=50000):
         count_batches += 1
 
     # Conversions
+    ratio = size / batch
+    avg_lat_iter = (stat[2] / count_batches) * ratio
     avg_lat_ns = (stat[2] / count_batches) / batch # latence moyenne par element
     min_ns = stat[0] / batch # le temps pour un element dans le meilleur batch
     max_ns = stat[1] / batch
     
-    return ops / duration_s , avg_lat_ns, min_ns, max_ns
+    return ops / duration_s , avg_lat_ns, min_ns, max_ns, avg_lat_iter, stat[0] * ratio, stat[1] * ratio
     
 
 def stride_test(size_bytes, duration_s, stride_bytes=4096):
