@@ -10,7 +10,7 @@ import gc
 # CALIBRATION (Run ONCE at startup)
 # ============================================================================
 
-N_calibration = 1_000_000
+N_calibration = 50_000
 
 # 1. Measuring time.perf_counter_ns() overhead
 total_overhead = 0
@@ -425,12 +425,8 @@ if __name__ == "__main__":
     parser.add_argument("--batch", type=int, default=50000)
     parser.add_argument("--stride-kb", type=int, default=64)
     args = parser.parse_args()
-
-    elements = args.size_bytes // 8
-    if elements > 0:
-        dynamic_iters = max(20, 500_000_000 // elements)
-    else:
-        dynamic_iters = args.iters
+    
+    dynamic_iters = args.iters
 
     if args.mode == "sequential_read":
         res = sequential_read(args.size_bytes, dynamic_iters)

@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import sys  # <-- [AJOUT] Nécessaire pour lire l'argument de Kubernetes
 import pandas as pd  
 
 def run_comparison_random():
@@ -8,11 +9,19 @@ def run_comparison_random():
     
     POD_ID = os.environ.get("POD_ID", "local")
     
-    csv_path = f"results/{POD_ID}/perf/seq/memory_benchmark_results_full_seq.csv"
-    output_dir = f"results/{POD_ID}/analyse_rand"
+    # =================================================================
+    # [MODIFICATION] GESTION DYNAMIQUE DES CHEMINS
+    # =================================================================
+    # 1. On lit le dossier racine passé par Kubernetes
+    base_dir = sys.argv[1] if len(sys.argv) > 1 else "numa0_isolated"
+
+    # 2. On construit les chemins
+    csv_path = os.path.join(base_dir, "memory_benchmark_results.csv")
+    output_dir = os.path.join(base_dir, "analyse_rand")
     
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    # 3. On crée le dossier s'il n'existe pas
+    os.makedirs(output_dir, exist_ok=True)
+    # =================================================================
 
     if not os.path.exists(csv_path):
         print(f"[ERROR] Inexistant file : {csv_path}")
@@ -100,7 +109,7 @@ def run_comparison_random():
     plt.xlabel('Size of memory array (Ko)', fontsize=12, fontweight='bold')
     plt.ylabel('Latence (ns) [Point=Moy | Épais=STD | Fin=Min/Max]', fontsize=11, fontweight='bold')
     
-    # Le titre indique a source du CSV pour la traçabilité
+    # Le titre indique la source du CSV pour la traçabilité
     plt.title(f'Performance of Random test : Stability vs Perturbations\n(Source: {csv_path})', fontsize=14)
 
     plt.grid(True, which="major", ls="-", alpha=0.6)
@@ -111,7 +120,8 @@ def run_comparison_random():
     save_path = os.path.join(output_dir, "analyse_rand_std_correcte_Version_finale.png")
     plt.savefig(save_path)
     print(f"[OK] Graph saved : {save_path}")
-    plt.show()
+    
+    # plt.show() <-- [MODIFICATION] Désactivé pour Kubernetes (pas d'écran)
 
 if __name__ == "__main__":
     run_comparison_random()

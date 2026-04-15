@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import sys  # <-- [AJOUT] Nécessaire pour lire les arguments de la commande
 import pandas as pd  
 import seaborn as sns
-
 
 def run_comparison_sequential():
     print("=== Sequential analysis: STD vs Min/Max ===")
@@ -13,9 +13,20 @@ def run_comparison_sequential():
     
     POD_ID = os.environ.get("POD_ID", "local")
 
-    csv_path = f"results/{POD_ID}/perf/seq/memory_benchmark_results_full_seq.csv"
-    output_dir = f"results/{POD_ID}/analyse_seq"
+    # =================================================================
+    # [MODIFICATION] GESTION DYNAMIQUE DES CHEMINS
+    # =================================================================
+    # 1. On lit le dossier racine passé par Kubernetes (ex: /app/results/numa0_isolated)
+    base_dir = sys.argv[1] if len(sys.argv) > 1 else "numa0_isolated"
+
+    # 2. On construit les chemins dynamiquement
+    csv_path = os.path.join(base_dir, "memory_benchmark_results.csv")
+    output_dir = os.path.join(base_dir, "analyse_seq")
     
+    # 3. On s'assure que le dossier de sortie pour les images existe !
+    os.makedirs(output_dir, exist_ok=True)
+    # =================================================================
+
     if not os.path.exists(csv_path):
         print(f"[ERROR] Inexistant file : {csv_path}")
         print("Run first script.py to generate metrics.")
@@ -37,7 +48,7 @@ def run_comparison_sequential():
     # =================================================================
     print("\n[INFO] Overhead dilution analysis...")
     
-    # [MODIFICATION] Préparation des données pour Seaborn (beaucoup plus simple avec pandas)
+    # Préparation des données pour Seaborn
     df_plot = df[df['pattern'].isin(['sequential_read', 'sequential_write'])].copy()
     df_plot['inv_size'] = 1 / df_plot['size_kb']
     df_plot['mode'] = df_plot['pattern'].replace({'sequential_read': 'Seq Read', 'sequential_write': 'Seq Write'})
@@ -59,7 +70,7 @@ def run_comparison_sequential():
 
     # Optionnel : sauvegarder ce premier graphe
     plt.savefig(os.path.join(output_dir, "analyse_seq_regression.png"))
-    plt.show()
+    # plt.show() <-- [MODIFICATION] Désactivé pour Kubernetes (pas d'écran)
         
     # =================================================================
     # GRAPHIQUE PRINCIPAL : LATENCE VS TAILLE (MATPLOTLIB)
@@ -85,7 +96,7 @@ def run_comparison_sequential():
         
         shifted_x = x_vals * offsets[label]
         
-        # [MODIFICATION] Calcul des barres d'erreur directement depuis les colonnes du CSV
+        # Calcul des barres d'erreur directement depuis les colonnes du CSV
         err_low = y_vals - df_sub['min_ns'].values
         err_high = df_sub['max_ns'].values - y_vals
         asymmetric_error = [err_low, err_high]
@@ -142,7 +153,7 @@ def run_comparison_sequential():
     save_path = os.path.join(output_dir, "analyse_seq_moins_overhead_version_finale_eng.png")
     plt.savefig(save_path)
     print(f"[OK] Plot saved : {save_path}")
-    plt.show()
+    # plt.show() <-- [MODIFICATION] Désactivé pour Kubernetes (pas d'écran)
 
 if __name__ == "__main__":
     run_comparison_sequential()
