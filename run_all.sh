@@ -26,9 +26,7 @@ fi
 
 echo "--- PHASE 2 : Generating plots ---"
 
-# Ces scripts lisent les CSV produits par script.py
-# Ils doivent savoir où lire ET où écrire
-python3 run_micro_analysis_seq.py --output-dir "$OUTPUT_DIR"
-python3 run_micro_analysis_rand.py --output-dir "$OUTPUT_DIR"
+python3 run_micro_analysis_seq.py "$OUTPUT_DIR"
+python3 run_micro_analysis_rand.py "$OUTPUT_DIR"
 
 echo "FINISHED !"
